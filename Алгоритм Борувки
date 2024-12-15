@@ -1,0 +1,97 @@
+class UnionFind:
+    def __init__(self, n):
+        """
+        Инициализация структуры Union-Find для n элементов.
+        """
+        self.parent = list(range(n))  # Каждый элемент является своим родителем
+        self.rank = [0] * n  # Ранги для объединения
+
+    def find(self, i):
+        """
+        Находит корень множества для элемента i (с компрессией пути).
+        """
+        if self.parent[i] != i:
+            self.parent[i] = self.find(self.parent[i])  # Компрессия пути
+        return self.parent[i]
+
+    def union(self, i, j):
+        """
+        Объединяет множества, содержащие элементы i и j (по рангу).
+        """
+        root_i = self.find(i)
+        root_j = self.find(j)
+
+        if root_i != root_j:
+            if self.rank[root_i] < self.rank[root_j]:
+                self.parent[root_i] = root_j
+            elif self.rank[root_i] > self.rank[root_j]:
+                self.parent[root_j] = root_i
+            else:
+                self.parent[root_j] = root_i
+                self.rank[root_i] += 1
+            return True
+        return False
+
+
+def boruvka(n, edges):
+    """
+    Алгоритм Борувки для нахождения минимального остовного дерева (MST).
+    :param n: Количество вершин в графе.
+    :param edges: Список ребер графа в формате (вес, вершина1, вершина2).
+    :return: Список ребер MST и общая стоимость дерева.
+    """
+    uf = UnionFind(n)  # Инициализация структуры Union-Find
+    mst = []  # Список ребер MST
+    total_weight = 0  # Общая стоимость MST
+
+    # Количество компонент связности (изначально каждая вершина - отдельная компонента)
+    num_components = n
+
+    while num_components > 1:
+        # Инициализируем массив минимальных ребер для каждой компоненты
+        cheapest = [-1] * n
+
+        # Поиск минимального ребра для каждой компоненты
+        for weight, u, v in edges:
+            root_u = uf.find(u)
+            root_v = uf.find(v)
+            if root_u != root_v:  # Если вершины в разных компонентах
+                if cheapest[root_u] == -1 or weight < edges[cheapest[root_u]][0]:
+                    cheapest[root_u] = (weight, u, v)
+                if cheapest[root_v] == -1 or weight < edges[cheapest[root_v]][0]:
+                    cheapest[root_v] = (weight, u, v)
+
+        # Добавляем минимальные ребра в MST
+        for i in range(n):
+            if cheapest[i] != -1:  # Если есть минимальное ребро для компоненты
+                weight, u, v = cheapest[i]
+                if uf.union(u, v):  # Объединяем компоненты
+                    mst.append((u, v, weight))
+                    total_weight += weight
+                    num_components -= 1
+
+    return mst, total_weight
+
+
+# Пример использования:
+# Список ребер графа в формате (вес, вершина1, вершина2)
+edges = [
+    (1, 0, 1),  # Ребро A-B с весом 1
+    (3, 2, 3),  # Ребро C-D с весом 3
+    (4, 1, 3),  # Ребро B-D с весом 4
+    (5, 1, 2),  # Ребро B-C с весом 5
+    (6, 3, 4),  # Ребро D-E с весом 6
+    (7, 0, 2),  # Ребро A-C с весом 7
+    (8, 2, 4),  # Ребро C-E с весом 8
+]
+
+n = 5  # Количество вершин: A, B, C, D, E
+
+# Выполняем алгоритм Борувки
+mst, total_weight = boruvka(n, edges)
+
+# Вывод результата
+print("Минимальное остовное дерево (MST):")
+for u, v, weight in mst:
+    print(f"Ребро ({chr(u + 65)} - {chr(v + 65)}) с весом {weight}")
+print(f"Общая стоимость MST: {total_weight}")
